@@ -1,0 +1,5 @@
+node_modules/
+*.log
+*.novo
+.DS_Store
+*.bak-*

@@ -1,0 +1,11 @@
+{
+  "name": "dsh-filtro-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Tira do schema do agente as tools que nascem na camada do app e nao obedecem ao patch do perfil.",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  }
+}

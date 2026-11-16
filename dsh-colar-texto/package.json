@@ -1,0 +1,23 @@
+{
+  "name": "dsh-colar-texto",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Recolhe um texto grande colado no composer do DSH num chip, como o PASTED do Claude, sem perder o texto enviado.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "license": "MIT"
+}

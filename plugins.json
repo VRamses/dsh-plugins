@@ -1,0 +1,68 @@
+{
+  "repo": "https://github.com/VRamses/dsh-plugins",
+  "atualizadoEm": "2026-11-16",
+  "origem": "snapshot de Documents\\DSH da maquina principal",
+  "observacao": "cada pasta e o pacote inteiro, sem node_modules; a receita de montagem esta em notes/topics/plugins-instancia.md do vault",
+  "plugins": [
+    {
+      "nome": "dsh-navegador",
+      "pasta": "dsh-navegador",
+      "versao": "0.5.0",
+      "metadeDeTela": false,
+      "dep": "file:",
+      "nodeModules": "hardlink",
+      "row": "dsh-navegador",
+      "configRow": "pasta: C:\\Users\\<usuario>\\Documents\\DSH\\DSH Opera"
+    },
+    {
+      "nome": "dsh-painel-uso",
+      "pasta": "dsh-painel-uso",
+      "versao": "0.1.0",
+      "metadeDeTela": true,
+      "dep": "file:",
+      "nodeModules": "hardlink",
+      "row": "painel-uso",
+      "configRow": null
+    },
+    {
+      "nome": "dsh-colar-texto",
+      "pasta": "dsh-colar-texto",
+      "versao": "0.1.0",
+      "metadeDeTela": true,
+      "dep": "file:",
+      "nodeModules": "hardlink",
+      "row": "dsh-colar-texto",
+      "configRow": null
+    },
+    {
+      "nome": "dsh-deepseek-web",
+      "pasta": "dsh-deepseek-web",
+      "versao": "0.1.0",
+      "metadeDeTela": true,
+      "dep": "file:",
+      "nodeModules": "hardlink",
+      "row": "deepseek-web",
+      "configRow": null
+    },
+    {
+      "nome": "dsh-subagent-lean",
+      "pasta": "dsh-subagent-lean",
+      "versao": "0.1.0",
+      "metadeDeTela": false,
+      "dep": null,
+      "nodeModules": "pasta",
+      "row": "subagent-lean-tools",
+      "configRow": "allow: lista de tools dos subagentes"
+    },
+    {
+      "nome": "dsh-filtro-tools",
+      "pasta": "dsh-filtro-tools",
+      "versao": "0.1.0",
+      "metadeDeTela": false,
+      "dep": null,
+      "nodeModules": "juncao",
+      "row": "filtro-tools",
+      "configRow": "deny: [ppt, office]"
+    }
+  ]
+}

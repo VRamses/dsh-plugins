@@ -1,0 +1,3 @@
+# Artefatos servidos ao DSH: sem normalizacao de fim de linha, senao o sha256 muda
+# entre o disco e a copia do perfil (mesmo motivo dos instaladores do vault).
+* -text

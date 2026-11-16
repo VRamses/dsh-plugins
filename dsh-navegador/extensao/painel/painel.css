@@ -1,0 +1,756 @@
+/*
+ * Estilo do painel. Feito para tres larguras: a barra lateral do Opera (~320px),
+ * a barra lateral do Chrome (~360px) e a janela destacada (~460px). Tudo com
+ * `min-width: 0` e quebra de linha onde precisa, porque painel estreito e o caso
+ * normal, nao a excecao.
+ */
+
+:root {
+  --fundo: #ffffff;
+  --fundo-2: #f6f7f9;
+  --fundo-3: #eceef2;
+  --texto: #14161a;
+  --texto-fraco: #5c6370;
+  --borda: #dfe3ea;
+  --acento: #1e40af;
+  --acento-claro: #3b82f6;
+  --perigo: #b91c1c;
+  --aviso: #92400e;
+  --ok: #15803d;
+  --raio: 10px;
+  --mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #16181d;
+    --fundo-2: #1d2026;
+    --fundo-3: #262a32;
+    --texto: #e7e9ee;
+    --texto-fraco: #9aa2b1;
+    --borda: #31363f;
+    --acento: #3b82f6;
+    --acento-claro: #60a5fa;
+    --perigo: #f87171;
+    --aviso: #fbbf24;
+    --ok: #4ade80;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--fundo);
+  color: var(--texto);
+  font: 13px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--borda);
+  background: var(--fundo-2);
+  border-radius: 8px;
+  padding: 4px 9px;
+}
+
+button:hover:not(:disabled) {
+  background: var(--fundo-3);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primario {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
+}
+
+button.primario:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+button.perigo {
+  color: var(--perigo);
+}
+
+/* ---------------------------------------------------------------- topo --- */
+
+header {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--borda);
+  background: var(--fundo-2);
+}
+
+.linha-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.marca {
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.situacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--texto-fraco);
+  min-width: 0;
+}
+
+.ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--texto-fraco);
+  flex: 0 0 auto;
+}
+
+.ponto.ok {
+  background: var(--ok);
+}
+
+.ponto.erro {
+  background: var(--perigo);
+}
+
+.ponto.trabalhando {
+  background: var(--aviso);
+  animation: pulsar 1.1s ease-in-out infinite;
+}
+
+@keyframes pulsar {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.espaco {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.titulo-sessao {
+  font-size: 12px;
+  color: var(--texto-fraco);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.medidores {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--texto-fraco);
+}
+
+.medidor {
+  background: var(--fundo-3);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- aba atual -- */
+
+.faixa-aba {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--borda);
+  font-size: 11.5px;
+  color: var(--texto-fraco);
+  background: var(--fundo);
+}
+
+.faixa-aba .nome {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.faixa-aba .aviso {
+  color: var(--aviso);
+}
+
+/* ------------------------------------------------------------ transcrito -- */
+
+main {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+}
+
+.vazio {
+  color: var(--texto-fraco);
+  text-align: center;
+  margin: auto;
+  padding: 18px;
+  max-width: 300px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rotulo {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--texto-fraco);
+}
+
+.fala {
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 8px 10px;
+  background: var(--fundo-2);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.item.usuario .fala {
+  background: var(--fundo-3);
+}
+
+.item.erro .fala {
+  border-color: var(--perigo);
+  color: var(--perigo);
+}
+
+.status {
+  font-size: 11.5px;
+  color: var(--texto-fraco);
+  padding: 0 2px;
+}
+
+.detalhe {
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--fundo);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.detalhe > summary {
+  cursor: pointer;
+  padding: 5px 8px;
+  font-size: 11.5px;
+  color: var(--texto-fraco);
+  list-style: none;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.detalhe > summary::-webkit-details-marker {
+  display: none;
+}
+
+.detalhe[open] > summary {
+  border-bottom: 1px solid var(--borda);
+}
+
+.detalhe .conteudo {
+  padding: 8px;
+  max-height: 320px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.ferramenta .nome {
+  font-family: var(--mono);
+  color: var(--texto);
+  font-size: 11.5px;
+}
+
+.ferramenta .estado {
+  font-size: 10.5px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--fundo-3);
+}
+
+.ferramenta .estado.ok {
+  color: var(--ok);
+}
+
+.ferramenta .estado.erro {
+  color: var(--perigo);
+}
+
+pre {
+  margin: 0;
+  padding: 8px;
+  background: var(--fundo-3);
+  border-radius: 8px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  background: var(--fundo-3);
+  padding: 0 3px;
+  border-radius: 4px;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+.fala p {
+  margin: 0 0 7px;
+}
+
+.fala p:last-child {
+  margin-bottom: 0;
+}
+
+.fala ul,
+.fala ol {
+  margin: 0 0 7px;
+  padding-left: 18px;
+}
+
+.fala h1,
+.fala h2,
+.fala h3,
+.fala h4 {
+  margin: 8px 0 5px;
+  font-size: 13.5px;
+}
+
+.fala a {
+  color: var(--acento);
+}
+
+.fala blockquote {
+  margin: 0 0 7px;
+  padding-left: 8px;
+  border-left: 3px solid var(--borda);
+  color: var(--texto-fraco);
+}
+
+.fala table {
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.fala td,
+.fala th {
+  border: 1px solid var(--borda);
+  padding: 2px 6px;
+}
+
+.anexo {
+  font-size: 11px;
+  color: var(--texto-fraco);
+}
+
+/* ------------------------------------------------------------- perguntas -- */
+
+.pergunta {
+  border: 1px solid var(--acento);
+  border-radius: var(--raio);
+  padding: 9px 10px;
+  background: var(--fundo-2);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.pergunta .enunciado {
+  font-weight: 600;
+}
+
+.pergunta .opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pergunta label {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 5px 7px;
+  background: var(--fundo);
+  cursor: pointer;
+}
+
+.pergunta label:hover {
+  background: var(--fundo-3);
+}
+
+.pergunta .descricao {
+  color: var(--texto-fraco);
+  font-size: 11.5px;
+}
+
+.pergunta textarea {
+  min-height: 34px;
+}
+
+/* ---------------------------------------------------------- pedido do agente */
+
+.pedido {
+  border: 1px solid var(--aviso);
+  border-radius: var(--raio);
+  padding: 9px 10px;
+  background: var(--fundo-2);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.pedido .alvo {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  background: var(--fundo-3);
+  border-radius: 6px;
+  padding: 5px 7px;
+  overflow-wrap: anywhere;
+}
+
+.pedido .acoes {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* Caixa "não perguntar de novo nesta conversa", dentro do cartão. */
+.pedido .lembrar {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--texto-fraco);
+  cursor: pointer;
+}
+
+.pedido .lembrar input {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+}
+
+/* ----------------------------------------------------------- autoaprovar - */
+
+/*
+ * O modo é perigoso por definição (o agente age sem o usuário ver a ação), então
+ * ele se anuncia em dois lugares: no botão da barra e numa faixa fixa acima do
+ * cartão de aprovação, com o botão de desligar sempre à mão.
+ */
+.faixa-auto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--aviso);
+  border-radius: 8px;
+  background: var(--fundo-2);
+  color: var(--aviso);
+  font-size: 11.5px;
+}
+
+/* O `display: flex` acima venceria o `hidden` do navegador: sem isto a faixa
+ * apareceria sempre, inclusive com o modo desligado. */
+.faixa-auto[hidden] {
+  display: none;
+}
+
+.faixa-auto span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.faixa-auto button {
+  font-size: 11px;
+  padding: 2px 7px;
+  flex: 0 0 auto;
+}
+
+.atalhos button#btn-auto.ativo {
+  border-color: var(--aviso);
+  background: var(--fundo-2);
+  color: var(--aviso);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------- composer - */
+
+footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--borda);
+  padding: 8px 10px 10px;
+  background: var(--fundo-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.atalhos {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.atalhos button {
+  font-size: 11.5px;
+  padding: 3px 8px;
+}
+
+.atalhos button.ativo {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+textarea#texto {
+  width: 100%;
+  min-height: 64px;
+  max-height: 220px;
+  resize: vertical;
+  border: 1px solid var(--borda);
+  border-radius: var(--radius, 8px);
+  background: var(--fundo);
+  padding: 7px 9px;
+}
+
+.rodape-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rodape-composer .dica {
+  font-size: 11px;
+  color: var(--texto-fraco);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- ajustes - */
+
+dialog#ajustes {
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--fundo);
+  color: var(--texto);
+  padding: 0;
+  width: min(420px, 92vw);
+}
+
+dialog#ajustes::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+dialog#ajustes .corpo {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+dialog#ajustes h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.campo > label {
+  font-size: 11.5px;
+  color: var(--texto-fraco);
+}
+
+.campo input[type='text'],
+.campo textarea,
+.campo select {
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--fundo-2);
+  padding: 6px 8px;
+  width: 100%;
+}
+
+.campo.linha {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.campo .ajuda {
+  font-size: 11px;
+  color: var(--texto-fraco);
+}
+
+.erro-texto {
+  color: var(--perigo);
+  font-size: 11.5px;
+}
+
+.ok-texto {
+  color: var(--ok);
+  font-size: 11.5px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Dialogo de conversas e lista de sessoes
+ *
+ * Faltava estilo aqui: o <dialog> caia no padrao do navegador e cada conversa
+ * era um <button> com a classe `primario`, que e o azul cheio dos botoes de
+ * acao. O resultado era uma caixa preta com um item azul berrante. Agora a
+ * conversa atual se marca por borda de acento e fundo levemente elevado.
+ * ------------------------------------------------------------------------- */
+
+dialog#sessoes,
+dialog#abas {
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--fundo);
+  color: var(--texto);
+  padding: 0;
+  width: min(440px, 94vw);
+}
+
+dialog#sessoes::backdrop,
+dialog#abas::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+dialog#sessoes .corpo,
+dialog#abas .corpo {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+dialog#sessoes h2,
+dialog#abas h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.linha-sessao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--texto);
+  width: 100%;
+}
+
+.linha-sessao:hover:not(:disabled) {
+  background: var(--fundo-3);
+  border-color: var(--borda);
+}
+
+.linha-sessao .titulo {
+  font-size: 12.5px;
+  line-height: 1.25;
+}
+
+.linha-sessao .meta {
+  font-size: 11px;
+  color: var(--texto-fraco);
+}
+
+.linha-sessao.atual {
+  background: var(--fundo-2);
+  border-color: var(--acento);
+}
+
+.linha-sessao.atual .titulo {
+  font-weight: 600;
+}
+
+/* A lista rola por dentro, sem empurrar o dialogo. */
+#lista-sessoes,
+#lista-abas {
+  max-height: 320px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+/* Barra de rolagem discreta: no tema escuro a padrao vem clara e corta o dialogo. */
+#lista-sessoes,
+#lista-abas,
+.transcrito {
+  scrollbar-width: thin;
+  scrollbar-color: var(--borda) transparent;
+}
+
+/* Marca de janela e de aba fixa na lista de abas. */
+.aba-marca {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--acento);
+  border: 1px solid var(--acento);
+  border-radius: 999px;
+  padding: 0 6px;
+  margin-left: 6px;
+}

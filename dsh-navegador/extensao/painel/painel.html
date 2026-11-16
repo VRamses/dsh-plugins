@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DSH no navegador</title>
+    <link rel="stylesheet" href="painel.css" />
+  </head>
+  <body>
+    <header>
+      <div class="linha-topo">
+        <span class="marca">DSH</span>
+        <span class="situacao" id="situacao"><span class="ponto" id="ponto"></span><span id="situacao-texto">Procurando a ponte...</span></span>
+        <span class="espaco"></span>
+        <button id="btn-sessao" title="Escolher ou criar a conversa">Conversa</button>
+        <button id="btn-ajustes" title="Ajustes da ponte e da conversa">Ajustes</button>
+      </div>
+      <div class="titulo-sessao" id="titulo-sessao">Nenhuma conversa</div>
+      <div class="medidores" id="medidores"></div>
+    </header>
+
+    <div class="faixa-aba" id="faixa-aba">
+      <span>Aba</span>
+      <span class="nome" id="aba-nome">Nenhuma aba capturada</span>
+      <button id="btn-abas" title="Escolher a aba alvo entre todas as abas e janelas">Abas</button>
+      <button id="btn-usar-aba" title="Usar a aba ativa agora">Usar a aba atual</button>
+    </div>
+
+    <main id="transcrito">
+      <div class="vazio" id="vazio">
+        Abra uma conversa no botão <strong>Conversa</strong> e escreva. O texto da aba entra junto quando
+        <strong>Aba</strong> está ligado, e o agente só mexe na página com a sua aprovação.
+      </div>
+    </main>
+
+    <footer>
+      <div class="faixa-auto" id="faixa-auto" hidden>
+        <span>Autoaprovar ligado nesta conversa: o agente age sem pedir a cada ação.</span>
+        <button id="btn-auto-desligar" title="Voltar a pedir aprovação para cada ação do agente">Desligar</button>
+      </div>
+      <div id="pendencias"></div>
+      <div class="atalhos">
+        <button id="btn-aba" class="ativo" title="Mandar o texto da aba junto com a mensagem">Aba</button>
+        <button id="btn-print" title="Mandar um print da aba junto com a mensagem">Print</button>
+        <button id="btn-selecao" title="Mandar só o trecho selecionado">Seleção</button>
+        <button id="btn-auto" title="Aprovar automaticamente as ações do agente nesta conversa, sem perguntar a cada uma">Autoaprovar</button>
+        <span class="espaco"></span>
+        <button id="btn-limpar" title="Limpar o transcrito desta janela sem apagar a conversa no DSH">Limpar</button>
+      </div>
+      <textarea id="texto" placeholder="Escreva para o DSH. Enter envia, Shift+Enter quebra linha."></textarea>
+      <div class="rodape-composer">
+        <span class="dica" id="dica"></span>
+        <button id="btn-parar" class="perigo" hidden>Parar</button>
+        <button id="btn-enviar" class="primario">Enviar</button>
+      </div>
+    </footer>
+
+    <dialog id="ajustes">
+      <div class="corpo">
+        <h2>Ajustes</h2>
+        <div class="campo">
+          <label for="cfg-base">Endereço da ponte</label>
+          <input type="text" id="cfg-base" placeholder="http://127.0.0.1:43129" />
+          <span class="ajuda" id="cfg-base-ajuda">Onde o DSH serve o painel web. O padrão é a porta do DSH Desktop.</span>
+        </div>
+        <div class="campo">
+          <label for="cfg-token">Token do pareamento</label>
+          <input type="text" id="cfg-token" placeholder="clique em parear" />
+          <span class="ajuda">O token fica no cofre de credenciais do DSH. O botão abaixo pega ele pela própria máquina.</span>
+        </div>
+        <div class="campo">
+          <label for="cfg-cwd">Pasta de trabalho das conversas novas</label>
+          <input type="text" id="cfg-cwd" placeholder="C:\Users\victo\Documents\DSH" />
+          <span class="ajuda"
+            >Cada conversa nova nasce nesta pasta, e é a pasta que dá o nome do grupo na barra lateral do DSH. Vazio usa a pasta do add-on (Add-on Opera).</span
+          >
+        </div>
+        <div class="campo">
+          <label for="cfg-preset">Preset de agente</label>
+          <select id="cfg-preset"></select>
+          <span class="ajuda">Qual conjunto de ferramentas a conversa nova recebe.</span>
+        </div>
+        <div class="campo linha">
+          <input type="checkbox" id="cfg-rolar" />
+          <label for="cfg-rolar">Rolar o transcrito sozinho enquanto a resposta chega</label>
+        </div>
+        <div id="cfg-estado"></div>
+        <div class="linha-topo">
+          <button id="btn-parear">Parear com esta máquina</button>
+          <button id="btn-testar">Testar conexão</button>
+          <span class="espaco"></span>
+          <button id="btn-fechar-ajustes" class="primario">Fechar</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="sessoes">
+      <div class="corpo">
+        <h2>Conversa</h2>
+        <div class="campo linha">
+          <button id="btn-nova-conversa" class="primario">Nova conversa</button>
+          <span class="espaco"></span>
+          <button id="btn-atualizar-sessoes">Atualizar lista</button>
+        </div>
+        <div class="campo">
+          <label for="busca-sessao">Procurar nas conversas do DSH</label>
+          <input type="text" id="busca-sessao" placeholder="título ou trecho" />
+        </div>
+        <div id="lista-sessoes" style="max-height: 320px; overflow: auto; display: flex; flex-direction: column; gap: 4px"></div>
+        <div class="linha-topo">
+          <span class="espaco"></span>
+          <button id="btn-fechar-sessoes" class="primario">Fechar</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="abas">
+      <div class="corpo">
+        <h2>Aba alvo</h2>
+        <div class="campo linha">
+          <button id="btn-usar-aba-dialogo" class="primario">Usar a aba ativa agora</button>
+          <span class="espaco"></span>
+          <button id="btn-atualizar-abas">Atualizar lista</button>
+        </div>
+        <div class="campo">
+          <label for="busca-aba">Procurar aba</label>
+          <input type="text" id="busca-aba" placeholder="título ou trecho da url" />
+        </div>
+        <div class="ajuda" id="abas-resumo"></div>
+        <div id="lista-abas"></div>
+        <div class="linha-topo">
+          <span class="espaco"></span>
+          <button id="btn-fechar-abas" class="primario">Fechar</button>
+        </div>
+      </div>
+    </dialog>
+
+    <script type="module" src="painel.js"></script>
+  </body>
+</html>
