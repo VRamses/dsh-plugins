@@ -23,7 +23,17 @@ Este repositório é **espelho de leitura**: a cópia de trabalho fica em `Docum
 git clone --depth 1 https://github.com/VRamses/dsh-plugins.git "%TEMP%\dsh-plugins"
 ```
 
-Depois copie as pastas que faltam para `Documents\DSH`. Se a instância tiver o vault de memória, o script `manutencao\plugins-instancia.ps1 -Conferir` diz o que falta e `-Baixar` copia só o que falta, sem sobrescrever pasta existente.
+Depois copie as pastas que faltam para `Documents\DSH`, sem tocar nas que já existem:
+
+```powershell
+$origem = "$env:TEMP\dsh-plugins"
+$destino = Join-Path $env:USERPROFILE 'Documents\DSH'
+Get-ChildItem $origem -Directory -Filter 'dsh-*' |
+  Where-Object { -not (Test-Path (Join-Path $destino $_.Name)) } |
+  ForEach-Object { Copy-Item $_.FullName $destino -Recurse; "copiado: $($_.Name)" }
+```
+
+Se a instância tiver o vault de memória, o script `manutencao\plugins-instancia.ps1 -Conferir` diz o que falta (pasta local, dep `file:`, row e versão montada, perfil por perfil) e `-Baixar` faz o clone e a cópia sozinho, sem sobrescrever pasta existente. Nenhum dos seis está no npm: não adianta `npm i`.
 
 O download também funciona sem git, pelo zip do branch:
 
