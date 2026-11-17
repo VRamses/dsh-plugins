@@ -7,7 +7,7 @@
     {
       "nome": "dsh-navegador",
       "pasta": "dsh-navegador",
-      "versao": "0.5.1",
+      "versao": "0.5.2",
       "metadeDeTela": false,
       "dep": "file:",
       "nodeModules": "hardlink",
