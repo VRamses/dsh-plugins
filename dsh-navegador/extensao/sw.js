@@ -836,6 +836,21 @@ async function prepararParaCaptura(abaId) {
     await chrome.tabs.update(abaId, { active: true });
     await new Promise((resolve) => setTimeout(resolve, 350));
   }
+  /*
+   * A captura é da superfície da JANELA, não só da aba: com a janela atrás de
+   * outra o Chrome devolve o último quadro pintado (foi assim que três prints
+   * saíram idênticos, com 268.192 bytes, de estados diferentes da página em
+   * 17/11/2026), e com a janela MINIMIZADA ele recusa com "view is invisible"
+   * ou "image readback failed", que foi o erro nos dois sites do RadarRAM e
+   * também numa aba do GitHub, ou seja: não era a página. Restaurar e focar
+   * força o compositor a pintar de novo antes da leitura.
+   */
+  const janela = await chrome.windows.get(aba.windowId).catch(() => null);
+  if (janela !== null && (janela.focused !== true || janela.state === 'minimized')) {
+    const alvo = janela.state === 'minimized' ? { state: 'normal', focused: true } : { focused: true };
+    await chrome.windows.update(aba.windowId, alvo).catch(() => undefined);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+  }
   return aba;
 }
 
@@ -1005,7 +1020,16 @@ async function tratar(mensagem) {
       if (abaId === undefined || abaId === null) throw new Error('nenhuma aba ativa para o print');
       const aba = await prepararParaCaptura(abaId);
       if (mensagem.inteira === true) return await capturarPaginaInteira(aba);
-      const dataUrl = await chrome.tabs.captureVisibleTab(aba.windowId, { format: 'png' });
+      let dataUrl;
+      try {
+        dataUrl = await chrome.tabs.captureVisibleTab(aba.windowId, { format: 'png' });
+      } catch (erro) {
+        // A recusa vem do Chrome, não da página: tela bloqueada, janela oculta
+        // ou compositor sem quadro novo. Dizer isso evita caçar defeito no site.
+        throw new Error(
+          `o Chrome nao entregou o quadro da janela (${erro.message}). Nao e a pagina: tela bloqueada, janela oculta ou aceleracao grafica desligada impedem a captura`,
+        );
+      }
       return { dataUrl, inteira: false, aba: descreverAba(aba) };
     }
 
@@ -1029,12 +1053,88 @@ async function tratar(mensagem) {
         .toLowerCase();
       if (!dominioPermitido(host)) throw new Error(`host fora da lista permitida: ${host || '(vazio)'}`);
       /*
-       * `getAll({domain})` ja restringe ao host pedido e aos subdominios dele, entao
-       * nao filtro dominio de novo aqui: um filtro caseiro por `endsWith` foi o que
-       * zerou a lista quando o cookie veio em `.neilpatel.zendesk.com`.
-       * Sobra so o corte de cookie expirado.
+       * Tres consultas, porque nenhuma sozinha enxerga tudo. Medido em 17/11/2026
+       * no `pdi-aktienow.zendesk.com`, com a aba do agente autenticada na frente:
+       *
+       *   getAll({domain: host})  -> ZERO cookies (a sessao de agente e host-only,
+       *                              e esse filtro casa o atributo Domain)
+       *   getAll({url: host + "/"}) -> 12 cookies, todos de analytics, SEM sessao
+       *   getAll({domain: "zendesk.com"}) -> 28, entre eles um `_zendesk_session`
+       *                              que responde 401 na API (e o visitante do site
+       *                              de marketing), nao a sessao do agente
+       *
+       * A explicacao que fecha os tres: o cookie do agente e host-only E tem Path
+       * diferente de `/` (o filtro por URL tambem casa caminho). Entao a lista de
+       * URLs candidatas comeca pela URL real da aba do host, que e o caminho mais
+       * provavel de ter gerado o cookie, e segue com os caminhos conhecidos.
+       *
+       * A consulta por `domain` entra por ultimo, so para nome que ainda nao
+       * apareceu, porque o Slack grava o `d` em `.slack.com` e o Zendesk grava o
+       * `_zendesk_shared_session` no dominio pai. Cada nome fica com um valor so:
+       * cabecalho com nome repetido faz o servidor escolher um deles, e nao
+       * necessariamente o certo.
        */
-      const lista = await chrome.cookies.getAll({ domain: host });
+      const urls = [];
+      const juntarUrl = (u) => {
+        if (typeof u === 'string' && u.startsWith('https://') && urls.includes(u) === false) urls.push(u);
+      };
+      try {
+        const aba = await abaDoHost(host);
+        if (aba !== null && aba.url) juntarUrl(aba.url.split('#')[0]);
+      } catch {
+        /* sem aba: sobram os caminhos fixos */
+      }
+      for (const caminho of ['/', '/agent', '/agent/dashboard', '/api/v2/', '/auth/v2/login', '/hc']) {
+        juntarUrl(`https://${host}${caminho}`);
+      }
+      const porUrl = [];
+      for (const u of urls) {
+        for (const c of await chrome.cookies.getAll({ url: u })) porUrl.push(c);
+      }
+      /*
+       * Rede larga, porque as consultas acima nao viram a sessao do agente em
+       * 17/11/2026 mesmo com a aba autenticada (o navegador respondia 200 em
+       * `api/v2/tickets.json` e o `getAll` do host so devolvia analytics).
+       *
+       * Duas coisas que o `getAll` filtra e que podem esconder o cookie:
+       *   - `domain` casa atributo Domain, entao host-only fica fora;
+       *   - cookie particionado (CHIPS) so aparece quando se passa `partitionKey`.
+       * Entao aqui: varredura do perfil inteiro filtrada por dominio em JS (pega
+       * host-only de qualquer caminho) mais as duas particoes plausiveis. `domain`
+       * do cookie host-only vem preenchido com o host, por isso a varredura acha.
+       */
+      const particionados = [];
+      const pai = host.split('.').slice(-2).join('.');
+      for (const site of [`https://${host}`, `https://${pai}`]) {
+        try {
+          for (const c of await chrome.cookies.getAll({ partitionKey: { topLevelSite: site } })) {
+            particionados.push(c);
+          }
+        } catch {
+          /* Chrome/Opera sem partitionKey: fica so a varredura */
+        }
+      }
+      const todos = await chrome.cookies.getAll({});
+      const doHost = todos.filter((c) => {
+        const d = String(c.domain || '').replace(/^\./, '').toLowerCase();
+        return d === host || d.endsWith(`.${host}`) || (d !== '' && host.endsWith(`.${d}`));
+      });
+      /*
+       * Ordem de prioridade para o valor do nome: host exato primeiro (a sessao
+       * do agente), depois particionado, depois varredura, depois URL e por fim
+       * o dominio pedido. Quem chega primeiro no nome fica, para o cabecalho ter
+       * um valor por nome.
+       */
+      const exatos = (c) => String(c.domain || '').replace(/^\./, '').toLowerCase() === host;
+      const ordenada = [...doHost.filter(exatos), ...particionados.filter(exatos), ...porUrl, ...doHost.filter((c) => !exatos(c)), ...particionados.filter((c) => !exatos(c))];
+      const jaTem = new Set();
+      const semRepetir = (c) => {
+        if (jaTem.has(c.name)) return false;
+        jaTem.add(c.name);
+        return true;
+      };
+      const porDominio = await chrome.cookies.getAll({ domain: host });
+      const lista = [...ordenada.filter(semRepetir), ...porDominio.filter(semRepetir)];
       const agora = Math.floor(Date.now() / 1000);
       const aplicaveis = lista.filter((c) => c.expirationDate === undefined || c.expirationDate > agora + 30);
       if (aplicaveis.length === 0) {

@@ -1450,6 +1450,13 @@ function desenharPedido(pedido) {
  */
 async function executarPedido(pedido, { automatica = false } = {}) {
   try {
+    /*
+     * Avisa a ponte ANTES de executar. A ação pode levar mais que o prazo de
+     * aprovação (12 s) e, sem este aviso, ela era reportada ao agente como
+     * "pendente" mesmo já estando em execução: foi o que aconteceu com o
+     * preenchimento do e-mail no RadarRAM em 17/11/2026.
+     */
+    await ui.ponte.responder({ id: pedido.id, tipo: 'aceito' }).catch(() => undefined);
     const aba = await abaAlvoDoPedido(pedido);
     if (aba === null || aba.id === null) throw new Error('sem aba alvo');
     let resultado =

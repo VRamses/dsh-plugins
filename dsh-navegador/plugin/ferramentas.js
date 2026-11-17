@@ -498,7 +498,7 @@ export function registrarFerramentas(ctx, ponte) {
         if (resultado.pendente === true) {
           return {
             acao,
-            resumo: 'pendente de aprovacao no painel do add-on',
+            resumo: 'sem resposta do painel em 12s: pode estar esperando aprovacao ou ja executando',
             pendente: true,
             ...(typeof resultado.id === 'string' ? { pedido: resultado.id } : {}),
             ...(typeof resultado.expiraEm === 'string' ? { expira_em: resultado.expiraEm } : {}),
@@ -844,13 +844,13 @@ function textoDaLeitura(valor) {
 function textoDaAcao(valor) {
   const linhas = [`Acao "${valor.acao}" na aba do navegador.`];
   if (valor.pendente === true) {
-    linhas.push('Resultado: pendente de aprovacao no painel do add-on.');
+    linhas.push('Resultado: o painel nao respondeu em 12s. A acao pode estar esperando aprovacao no painel OU ja estar executando.');
     if (typeof valor.pedido === 'string' && valor.pedido !== '') linhas.push(`Identificador do pedido: ${valor.pedido}`);
     if (typeof valor.expira_em === 'string' && valor.expira_em !== '') {
       linhas.push(`O pedido expira em ${valor.expira_em} se ninguem aprovar.`);
     }
     linhas.push(
-      'Nada foi executado ainda. Nao repita a acao: avise o usuario de que ela espera aprovacao no painel e que o resultado aparece la.',
+      'Antes de repetir, leia a aba (navegador_ler) para ver se o efeito ja aconteceu: repetir as cegas duplica clique e digitacao.',
     );
   } else {
     linhas.push(`Resultado: ${valor.resumo}`);

@@ -193,6 +193,49 @@ async function principal() {
   const estado = ponte.estado();
   conferir('o estado publica os prazos', estado.pedidos?.prazos?.aprovacaoMs === 60 && estado.pedidos?.prazos?.expiracaoMs === 400);
 
+  // -------------------------------------------------------------------------
+  // 9. o aviso "aceitei" troca o prazo de aprovacao pelo de resposta
+  // -------------------------------------------------------------------------
+
+  /*
+   * Medido em 17/11/2026 no RadarRAM: o painel executava a acao em menos de 12s
+   * no caso do clique, mas o preenchimento do e-mail passava do prazo e voltava
+   * como "pendente" mesmo tendo rodado. O painel agora avisa que comecou
+   * (`{tipo:'aceito'}`) e a ponte para de contar o prazo de aprovacao.
+   */
+  console.log('\n9. aviso de execucao aceita');
+  const ponte6 = ponteCom({ aprovacaoMs: 80, respostaMs: 200, expiracaoMs: 3000 });
+  const painel6 = assinarPainel(ponte6);
+  const inicio6 = Date.now();
+  const devagar = ponte6.pedir({ tipo: 'agir', acao: 'digitar', seletor: '#email', texto: 'a@b.c' });
+  await espera(30);
+  const idDevagar = painel6.mensagens().find((m) => m.tipo === 'pedido')?.pedido?.id;
+  const aviso = ponte6.responder({ id: idDevagar, tipo: 'aceito' });
+  conferir('o aviso de aceite e reconhecido', aviso.conhecido === true && aviso.aceito === true);
+  // Passa dos 80ms de aprovacao e ainda assim o pedido nao virou pendente.
+  await espera(140);
+  ponte6.responder({ id: idDevagar, ok: true, valor: { resumo: 'digitei 22 caracteres (o campo confere)' }, aprovada: true });
+  const valorDevagar = await devagar;
+  const gasto6 = Date.now() - inicio6;
+  conferir('acao lenta nao vira pendente depois do aceite', valorDevagar?.pendente !== true && /digitei 22/.test(valorDevagar?.resumo ?? ''), `${gasto6}ms`);
+  conferir('o aceite aconteceu dentro do prazo de aprovacao', gasto6 > 80);
+
+  const ponte7 = ponteCom({ aprovacaoMs: 50, respostaMs: 120, expiracaoMs: 3000 });
+  const painel7 = assinarPainel(ponte7);
+  const muda = ponte7.pedir({ tipo: 'agir', acao: 'clicar', seletor: '#k' });
+  await espera(20);
+  const idMuda = painel7.mensagens().find((m) => m.tipo === 'pedido')?.pedido?.id;
+  ponte7.responder({ id: idMuda, tipo: 'aceito' });
+  let erroMuda = null;
+  try {
+    await muda;
+  } catch (erro) {
+    erroMuda = erro;
+  }
+  conferir('aceite sem resultado falha em vez de travar', erroMuda instanceof Error);
+  conferir('a falha diz que o painel aceitou e nao devolveu', /aceitou a acao/.test(erroMuda?.message ?? ''), erroMuda?.message ?? '');
+  conferir('aceite de pedido desconhecido nao finge sucesso', ponte7.responder({ id: 'nao-existe', tipo: 'aceito' }).conhecido === false);
+
   clearInterval(segura);
   console.log(`\n${placar.ok} ok, ${placar.falhou} falha(s)`);
   process.exit(placar.falhou === 0 ? 0 : 1);

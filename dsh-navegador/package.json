@@ -1,6 +1,6 @@
 {
   "name": "dsh-navegador",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "Ponte entre o DSH e um add-on de navegador (Opera/Chromium): expoe uma rota local com token para ler a aba atual, conversar nas sessoes do DSH e deixar o agente pedir acoes na pagina com aprovacao.",
   "type": "module",

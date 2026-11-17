@@ -249,23 +249,56 @@ export function candidatosBase(configurada) {
 }
 
 /**
+ * Endereços locais das abas abertas, que valem uma sonda.
+ *
+ * A lista fixa de portas envelhece: o DSH escolhe a porta do servidor web na
+ * subida e ela muda quando o app reinicia ou atualiza (medido em 17/11/2026 no
+ * notebook: a ponte passou da 43129 para a 59293 depois da atualização para a
+ * 0.14.0 e o painel ficou em `Failed to fetch`, sem achar nada). A aba do
+ * próprio DSH entrega a porta viva de graça.
+ *
+ * @returns origens `http(s)://host:porta` sem repetição, ou `[]`.
+ */
+export async function candidatosDasAbas() {
+  const abas = globalThis.chrome?.tabs;
+  if (typeof abas?.query !== 'function') return [];
+  let lista;
+  try {
+    lista = await abas.query({});
+  } catch {
+    return [];
+  }
+  const origens = [];
+  for (const aba of lista ?? []) {
+    try {
+      const url = new URL(String(aba?.url ?? ''));
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') continue;
+      if (!/^(127\.0\.0\.1|localhost|\[::1\])$/.test(url.hostname)) continue;
+      origens.push(`${url.protocol}//${url.hostname}${url.port === '' ? '' : `:${url.port}`}`);
+    } catch {
+      /* aba sem URL legível: ignora */
+    }
+  }
+  return [...new Set(origens)];
+}
+
+/**
  * Procura uma ponte viva.
  * @param configurada - endereço configurado, tentado primeiro.
  * @param tempoLimiteMs - prazo de cada tentativa.
  * @returns o estado devolvido pelo `/ola`, ou `null`.
  */
 export async function descobrirPonte(configurada, tempoLimiteMs = 1200) {
-  for (const base of candidatosBase(configurada)) {
-    try {
-      const resposta = await fetch(urlPonte(base, '/ola'), { signal: AbortSignal.timeout(tempoLimiteMs), cache: 'no-store' });
-      if (!resposta.ok) continue;
-      const dados = await resposta.json();
-      if (dados?.ok === true && dados?.protocolo === PROTOCOLO) return { ...dados, baseUrl: base };
-    } catch {
-      /* tenta o próximo */
-    }
-  }
-  return null;
+  const lista = [...new Set([...candidatosBase(configurada), ...(await candidatosDasAbas())])];
+  const sonda = async (base) => {
+    const resposta = await fetch(urlPonte(base, '/ola'), { signal: AbortSignal.timeout(tempoLimiteMs), cache: 'no-store' });
+    if (!resposta.ok) return null;
+    const dados = await resposta.json();
+    if (dados?.ok === true && dados?.protocolo === PROTOCOLO) return { ...dados, baseUrl: base };
+    return null;
+  };
+  const achados = await Promise.all(lista.map((base) => sonda(base).catch(() => null)));
+  return achados.find((achado) => achado !== null) ?? null;
 }
 
 /** Formata um horário curto para o painel. */

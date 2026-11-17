@@ -368,6 +368,30 @@ export function criarPonte(ctx, opcoes) {
         });
       };
 
+      /*
+       * O painel avisa que começou a executar (autoaprovação ligada, ou você já
+       * clicou em aprovar). Sem esse aviso a ponte não distingue "ninguém aprovou
+       * em 12 s" de "aprovou e está executando algo lento", e ação lenta virava
+       * "pendente" mesmo tendo rodado. Medido em 17/11/2026 no RadarRAM: clicar
+       * voltava resultado, digitar 22 caracteres voltava pendente e o texto
+       * aparecia no campo depois.
+       */
+      const aceitar = () => {
+        if (respondido) return false;
+        clearTimeout(prazoDeResposta);
+        prazoDeResposta = setTimeout(
+          () =>
+            expirar(
+              new Error(
+                `o painel aceitou a acao e nao devolveu o resultado em ${Math.max(1, Math.round(prazoResposta / 1000))}s`,
+              ),
+            ),
+          prazoResposta,
+        );
+        prazoDeResposta.unref?.();
+        return true;
+      };
+
       prazoDeResposta = setTimeout(() => {
         if (respondido) return;
         if (esperaAprovacao) avisarPendente();
@@ -381,7 +405,7 @@ export function criarPonte(ctx, opcoes) {
       );
       prazoDeExpiracao.unref?.();
 
-      pendentes.set(id, { pedido: completo, expiraEm: agora + prazoExpiracao, concluir });
+      pendentes.set(id, { pedido: completo, expiraEm: agora + prazoExpiracao, concluir, aceitar });
       for (const assinante of assinantes) envioAssinante(assinante, { tipo: 'pedido', pedido: completo });
       if (signal?.aborted === true) {
         aoCancelar();
@@ -398,6 +422,13 @@ export function criarPonte(ctx, opcoes) {
     if (typeof id !== 'string') throw new Error('resposta sem id');
     const pendente = pendentes.get(id);
     if (pendente === undefined) return { conhecido: false };
+    // Aviso de "comecei a executar": não conclui nada, só troca o relógio do
+    // prazo de aprovação pelo de resposta. Painel antigo não manda este aviso, e
+    // aí vale o comportamento de antes.
+    if (resposta.tipo === 'aceito') {
+      const aceito = typeof pendente.aceitar === 'function' ? pendente.aceitar() : false;
+      return { conhecido: true, aceito };
+    }
     pendente.concluir(resposta);
     return { conhecido: true };
   }
