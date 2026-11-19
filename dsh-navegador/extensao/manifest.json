@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "DSH no navegador",
   "short_name": "DSH",
-  "version": "0.5.2",
-  "description": "Converse com o DeepSeek Harness da sua máquina de dentro do navegador, com a aba atual como contexto, leia também o conteúdo dentro de iframes, e deixe o agente agir na página com a sua aprovação.",
+  "version": "0.5.3",
+  "description": "Converse com o DeepSeek Harness da sua mÃ¡quina de dentro do navegador, com a aba atual como contexto, leia tambÃ©m o conteÃºdo dentro de iframes, e deixe o agente agir na pÃ¡gina com a sua aprovaÃ§Ã£o.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icones/icone-16.png",

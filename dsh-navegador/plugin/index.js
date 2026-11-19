@@ -10,8 +10,12 @@
  *    `navegador_agir`), que é o que faz o add-on ser um add-on de verdade e não
  *    só um chat numa barra lateral.
  *
- * Nada aqui abre porta nova: a ponte mora no mesmo servidor web do DSH, em
- * caminhos irmãos do `/api`, e só responde em loopback.
+ * As rotas moram no mesmo servidor web do DSH, em caminhos irmãos do `/api`, e
+ * só respondem em loopback. A exceção é a porta fixa (`porta-fixa.js`): o DSH
+ * sorteia a porta do servidor web a cada boot, e o painel do navegador não tem
+ * como descobrir qual é, então a metade host abre uma escuta em porta conhecida
+ * que repassa para a viva. Ela é um cano, não um servidor: todas as cercas de
+ * `auth.js` continuam valendo na rota de destino.
  *
  * @module dsh-navegador
  */
@@ -24,6 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { avaliar, carregarToken } from './auth.js';
 import { registrarFerramentas } from './ferramentas.js';
 import { criarPonte, extrairArgs, lerCorpoJson, responderJson, responderTexto, TETO_CORPO_BYTES } from './ponte.js';
+import { abrirPortaFixa, PORTA_PADRAO } from './porta-fixa.js';
 import { BASE, PROTOCOL, ROTAS, linha, permitido, rpcPermitidos, fluxoPermitidos } from './protocol.js';
 
 /** Identidade estável no Loader. */
@@ -153,13 +158,96 @@ export async function emWorkspaceDoAddon(endpoint, args, opcoes) {
 }
 
 /**
+ * Lê a porta fixa da configuração do patch.
+ *
+ * Sem configuração vale `PORTA_PADRAO`, que é a primeira candidata que o painel
+ * procura. `portaFixa: false` desliga, e é o que resta para quem preferir a
+ * ferramenta externa das máquinas do Ramses.
+ *
+ * @param config - configuração do patch.
+ * @returns a porta, ou `null` quando desligada ou inválida.
+ */
+export function lerPortaFixa(config) {
+  const escolhida = config?.portaFixa;
+  if (escolhida === undefined || escolhida === null || escolhida === true) return PORTA_PADRAO;
+  if (escolhida === false) return null;
+  const numero = typeof escolhida === 'string' ? Number(escolhida.trim()) : escolhida;
+  if (Number.isSafeInteger(numero) && numero >= 1024 && numero <= 65535) return numero;
+  return null;
+}
+
+/**
  * Monta a ponte.
  * @param ctx - contexto do host.
- * @param config - configuração do patch (`pareamento` para desligar o `/parear`).
+ * @param config - configuração do patch (`pareamento` para desligar o `/parear`, `portaFixa` para a porta conhecida).
  */
 export function apply(ctx, config) {
   const permitirPareamento = config?.pareamento !== false;
   const cwdConversas = pastaDasConversas(config);
+  const portaFixa = lerPortaFixa(config);
+  if (portaFixa === null && config?.portaFixa !== false) {
+    ctx.logger?.warn?.(
+      `dsh-navegador: portaFixa invalida (${JSON.stringify(config?.portaFixa)}); esperava numero de 1024 a 65535 ou false`,
+    );
+  }
+
+  /** Escuta da porta fixa; criada depois das rotas, e `null` enquanto não subiu. */
+  const fixa = { escuta: null, motivo: null };
+
+  /**
+   * Retrato da porta fixa para o `/ola` e para o `ponte.json`.
+   *
+   * Sai daqui, e não do objeto da escuta direto, porque há três estados sem
+   * escuta: desligada na configuração, iniciando e a porta que o próprio DSH já
+   * ocupa.
+   * @returns o estado legível.
+   */
+  const estadoDaPortaFixa = () => {
+    if (fixa.escuta !== null) return fixa.escuta.estado();
+    if (portaFixa === null) return { ativa: false, porta: null, motivo: 'desligada na configuracao' };
+    return { ativa: false, porta: portaFixa, motivo: fixa.motivo ?? 'iniciando' };
+  };
+
+  /**
+   * Abre a escuta da porta fixa presa ao ciclo de vida do plugin.
+   *
+   * Fica depois das rotas de propósito: o painel pode bater na porta fixa no
+   * mesmo instante em que o harness sobe, e antes de as rotas existirem o
+   * servidor web do DSH responderia 404, que o painel lê como "aqui não é a ponte".
+   */
+  function abrirPortaFixaDoPainel(opcoes) {
+    if (portaFixa === null) {
+      fixa.motivo = 'desligada na configuracao';
+      ctx.logger?.info?.('dsh-navegador: porta fixa desligada na configuracao');
+      return;
+    }
+    if (ctx.webServer.port === portaFixa) {
+      fixa.motivo = 'o proprio DSH escuta nesta porta';
+      ctx.logger?.info?.(`dsh-navegador: o proprio DSH ja escuta em ${portaFixa}; sem escuta extra`);
+      return;
+    }
+    ctx.effect(() => {
+      fixa.escuta = abrirPortaFixa({
+        porta: portaFixa,
+        destino: () => ctx.webServer?.port ?? null,
+        log: (nivel, mensagem) => {
+          const alvo = typeof ctx.logger?.[nivel] === 'function' ? ctx.logger[nivel] : ctx.logger?.info;
+          if (typeof alvo === 'function') alvo.call(ctx.logger, `dsh-navegador: ${mensagem}`);
+        },
+        // A escuta pode nascer ocupada e só assumir a porta segundos depois do boot
+        // (foi o que aconteceu em 19/11/2026, com o `ponte-fixa` externo ainda de
+        // pé). Sem reescrever o retrato nessa hora, o `ponte.json` continuaria
+        // dizendo `portaFixa.ativa: false` com a porta já repassando.
+        aoMudar: () => {
+          anotarEstado(ctx, ponte, opcoes).catch(() => {});
+        },
+      });
+      return () => {
+        fixa.escuta?.fechar();
+        fixa.escuta = null;
+      };
+    }, 'dsh-navegador: porta fixa do painel');
+  }
 
   /** Workspace das conversas: id resolvido e a resolução em curso, se houver. */
   const workspace = { id: null, emCurso: null };
@@ -200,16 +288,23 @@ export function apply(ctx, config) {
     registrarFerramentas(ctx, ponte);
     // Antes de servir: o Workspace tem de existir para as conversas seguintes.
     await workspaceId();
-    await registrarRota(ctx, ponte, {
+    const opcoes = {
       permitirPareamento,
       tokenPromessa: Promise.resolve({ token, criado }),
       home,
       cwdConversas,
       workspaceId,
-    });
+      portaFixa: estadoDaPortaFixa,
+    };
+    await registrarRota(ctx, ponte, opcoes);
     ctx.logger?.info?.(
       `dsh-navegador: ponte montada em ${BASE} (protocolo ${PROTOCOL})${criado ? '; token novo criado, pareie o add-on' : ''}`,
     );
+    abrirPortaFixaDoPainel(opcoes);
+    // Reescreve o retrato agora que a escuta fixa tem estado: o `ponte.json` é o
+    // que uma ferramenta de fora (o `ponte-fixa` das máquinas do Ramses) lê para
+    // saber onde está a porta viva do DSH.
+    await anotarEstado(ctx, ponte, opcoes);
   });
 
   // Um erro aqui não pode derrubar o perfil inteiro: o DSH é útil sem o add-on.
@@ -244,6 +339,7 @@ async function anotarEstado(ctx, ponte, opcoes) {
     pareamento: opcoes.permitirPareamento,
     pastaConversas: opcoes.cwdConversas ?? null,
     workspaceConversas: await opcoes.workspaceId(),
+    portaFixa: opcoes.portaFixa?.() ?? null,
     escritoEm: new Date().toISOString(),
   };
   try {
@@ -285,6 +381,7 @@ async function atender(ctx, ponte, opcoes, req, res) {
           // `workspaceId` é o que agrupa a conversa: o painel usa esse id
           // quando existe, e `cwd` fica como retrato do caminho.
           addon: { cwd: opcoes.cwdConversas ?? null, workspaceId: await opcoes.workspaceId() },
+          portaFixa: opcoes.portaFixa?.() ?? null,
         }),
       );
     }

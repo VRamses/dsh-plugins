@@ -1,13 +1,13 @@
 {
   "repo": "https://github.com/VRamses/dsh-plugins",
-  "atualizadoEm": "2026-11-17",
+  "atualizadoEm": "2026-11-18",
   "origem": "snapshot de Documents\\DSH da maquina principal",
   "observacao": "cada pasta e o pacote inteiro, sem node_modules; a receita de montagem esta em notes/topics/plugins-instancia.md do vault",
   "plugins": [
     {
       "nome": "dsh-navegador",
       "pasta": "dsh-navegador",
-      "versao": "0.5.2",
+      "versao": "0.5.3",
       "metadeDeTela": false,
       "dep": "file:",
       "nodeModules": "hardlink",
