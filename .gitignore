@@ -1,0 +1,5 @@
+# Credenciais locais nunca vão para o repositório. O modelo versionado é o .env.example.
+.env
+.env.*
+!.env.example
+!.env.*.example
